@@ -1,0 +1,29 @@
+{
+  "name": "runners-of-oracle",
+  "version": "1.0.0",
+  "description": "Runners Of ORACLE est une plateforme d’apprentissage et de compétition où des développeurs, seuls ou en équipe, relèvent des défis informatiques. C'est un projet réalisé dans le cadre de notre 3e année de BUT informatique..",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/LexoRom/Runners-Of-Oracle.git"
+  },
+  "keywords": [],
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/LexoRom/Runners-Of-Oracle/issues"
+  },
+  "homepage": "https://github.com/LexoRom/Runners-Of-Oracle#readme",
+  "devDependencies": {
+    "@commitlint/cli": "^21.2.4",
+    "@commitlint/config-conventional": "^21.2.4",
+    "eslint": "^10.14.0",
+    "husky": "^9.1.7",
+    "prettier": "^3.10.1"
+  }
+}
