@@ -13,6 +13,7 @@ import { IsInt, IsOptional, IsString, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 import { PrismaService } from '../../prisma/prisma.module';
 import { AuthUser, CurrentUser, JwtAuthGuard, Roles, RolesGuard } from '../../common';
+import { encrypt } from '../../lib/crypto';
 
 class ChallengeFilterDto {
   @IsOptional() @IsString() theme?: string;
@@ -60,6 +61,25 @@ export class ChallengesController {
   @ApiOperation({ summary: 'Créer un défi (admin)' })
   create(@Body() body: any) {
     return this.prisma.challenge.create({ data: body });
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMINISTRATEUR')
+  @Post(':id/versions')
+  @ApiOperation({ summary: 'Ajouter une version (tests + solution chiffrés AES-256-GCM)' })
+  async addVersion(@Param('id') id: string, @Body() body: { statement?: string; starterCode?: string; tests: any[]; referenceSolution?: string }) {
+    const last = await this.prisma.challengeVersion.findFirst({ where: { challengeId: id }, orderBy: { version: 'desc' } });
+    const version = (last?.version ?? 0) + 1;
+    return this.prisma.challengeVersion.create({
+      data: {
+        challengeId: id,
+        version,
+        statement: body.statement ?? null,
+        starterCode: body.starterCode ?? null,
+        testsEncrypted: encrypt(JSON.stringify(body.tests ?? [])),
+        referenceSolutionEncrypt: body.referenceSolution ? encrypt(body.referenceSolution) : '',
+      },
+    });
   }
 }
 
