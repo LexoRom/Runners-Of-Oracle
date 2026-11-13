@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { PrismaModule } from './prisma/prisma.module';
 import { HealthModule } from './modules/health/health.module';
@@ -13,6 +14,7 @@ import { EconomyModule } from './modules/economy/economy.module';
 import { LoreModule } from './modules/lore/lore.module';
 import { LessonsModule } from './modules/lessons/lessons.module';
 import { AdminModule } from './modules/admin/admin.module';
+import { LogMaskingInterceptor } from './common/log-masking.interceptor';
 
 @Module({
   imports: [
@@ -30,6 +32,9 @@ import { AdminModule } from './modules/admin/admin.module';
     LoreModule,
     LessonsModule,
     AdminModule,
+  ],
+  providers: [
+    { provide: APP_INTERCEPTOR, useClass: LogMaskingInterceptor },
   ],
 })
 export class AppModule {}
