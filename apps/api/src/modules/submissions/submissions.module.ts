@@ -14,6 +14,7 @@ import { PrismaService } from '../../prisma/prisma.module';
 import { AuthUser, CurrentUser, JwtAuthGuard } from '../../common';
 import { randomUUID } from 'node:crypto';
 import * as vm from 'node:vm';
+import { decrypt, isEncrypted } from '../../lib/crypto';
 
 class CreateSubmissionDto {
   @IsString() language: string;
@@ -85,6 +86,22 @@ export class ChallengeSubmissionsController {
         data: { status: 'FAILED', output: 'Python runner en cours d’implémentation (vague 2). Utilisez JavaScript.' },
       });
       return this.prisma.submission.findUnique({ where: { id: submission.id } });
+    }
+
+    // Décryptage : la réponse est le texte clair, comparé à la valeur attendue.
+    if (challenge.type === 'DECRYPT') {
+      let expected = '';
+      try {
+        const raw = isEncrypted(version.testsEncrypted) ? decrypt(version.testsEncrypted) : version.testsEncrypted;
+        const parsed = JSON.parse(raw);
+        expected = Array.isArray(parsed) ? (parsed[0]?.expected ?? '') : (parsed.expected ?? '');
+      } catch { expected = ''; }
+      const ok = dto.code.trim() === String(expected).trim();
+      const updated = await this.prisma.submission.update({
+        where: { id: submission.id },
+        data: { status: 'DONE', testsPassed: ok ? 1 : 0, testsTotal: 1, score: ok ? challenge.basePoints * challenge.difficulty : 0, output: ok ? 'Texte clair correct' : 'Texte clair incorrect' },
+      });
+      return updated;
     }
 
     const { passed, totalTimeMs, output } = this.runJs(dto.code, tests);
