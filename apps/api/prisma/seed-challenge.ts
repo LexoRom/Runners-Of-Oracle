@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { encrypt } from '../src/lib/crypto';
 
 const prisma = new PrismaClient();
 
@@ -31,12 +32,12 @@ async function main() {
       challengeId: challenge.id,
       version: 1,
       starterCode: 'function solve(input) {\n  const arr = [...input];\n  // votre code\n  return arr;\n}',
-      testsEncrypted: JSON.stringify([
+      testsEncrypted: encrypt(JSON.stringify([
         { input: [3, 1, 2], expected: [1, 2, 3] },
         { input: [], expected: [] },
         { input: [5, 4, 3, 2, 1], expected: [1, 2, 3, 4, 5] },
         { input: [1, 2, 3], expected: [1, 2, 3] },
-      ]),
+      ])),
       referenceSolutionEncrypt: 'function solve(input){return [...input].sort((a,b)=>a-b);}',
     },
   });

@@ -12,8 +12,8 @@ import { IsInt, IsOptional, IsString, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 import { PrismaService } from '../../prisma/prisma.module';
 import { AuthUser, CurrentUser, JwtAuthGuard } from '../../common';
-import { randomUUID } from 'node:crypto';
 import * as vm from 'node:vm';
+import { decrypt, isEncrypted } from '../../lib/crypto';
 
 class CreateSubmissionDto {
   @IsString() language: string;
@@ -51,7 +51,8 @@ export class ChallengeSubmissionsController {
     // Tests stockés chiffrés en production (AES-256-GCM, §9) ; en dev ils sont en clair.
     let tests: { input: any; expected: any }[] = [];
     try {
-      tests = JSON.parse(version.testsEncrypted);
+      const raw = isEncrypted(version.testsEncrypted) ? decrypt(version.testsEncrypted) : version.testsEncrypted;
+      tests = JSON.parse(raw);
     } catch {
       tests = [];
     }
