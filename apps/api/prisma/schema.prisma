@@ -331,6 +331,7 @@ model Team {
   submissions Submission[]
   bestScores  BestScore[]
   eventParticipations EventParticipant[]
+  memberLimit Int        @default(5)
 }
 
 model TeamMember {
