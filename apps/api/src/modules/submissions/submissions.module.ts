@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  ForbiddenException,
   Get,
   Module,
   Param,
@@ -38,6 +39,23 @@ export class ChallengeSubmissionsController {
     @CurrentUser() user: AuthUser,
     @Body() dto: CreateSubmissionDto,
   ) {
+    // Vérification des prérequis (§4.7)
+    const prereqs = await this.prisma.challengePrerequisite.findMany({ where: { challengeId } });
+    const missing: string[] = [];
+    for (const p of prereqs) {
+      if (p.requiredChallengeId) {
+        const best = await this.prisma.bestScore.findFirst({ where: { challengeId: p.requiredChallengeId, userId: user.sub } });
+        if (!best) missing.push('Défi prérequis non réussi');
+      }
+      if (p.requiredLessonId) {
+        const progress = await this.prisma.lessonProgress.findUnique({ where: { userId_lessonId: { userId: user.sub, lessonId: p.requiredLessonId } } });
+        if (!progress) missing.push('Cours prérequis non terminé');
+      }
+    }
+    if (missing.length > 0) {
+      throw new ForbiddenException({ code: 'prerequisites_missing', message: 'Prérequis non satisfaits', details: missing });
+    }
+
     const challenge = await this.prisma.challenge.findUnique({
       where: { id: challengeId },
       include: { versions: { orderBy: { version: 'desc' }, take: 1 } },
