@@ -13,7 +13,7 @@ export default function Challenges() {
     const q: Record<string, string> = {};
     if (theme) q.theme = theme;
     if (difficulty) q.difficulty = difficulty;
-    api.challenges(q).then(setItems).catch(() => setItems([]));
+    api.challenges(q).then((r: any) => setItems(Array.isArray(r) ? r : (r?.data ?? []))).catch(() => setItems([]));
   }, [theme, difficulty]);
 
   return (

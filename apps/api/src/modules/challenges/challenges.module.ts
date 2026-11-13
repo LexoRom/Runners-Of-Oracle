@@ -27,18 +27,33 @@ export class ChallengesController {
   constructor(private readonly prisma: PrismaService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Lister les défis (filtres : theme, difficulty, status, type)' })
-  list(@Query() query: ChallengeFilterDto) {
-    return this.prisma.challenge.findMany({
-      where: {
-        ...(query.status ? { status: query.status as any } : { status: 'PUBLISHED' }),
-        ...(query.theme ? { theme: { slug: query.theme } } : {}),
-        ...(query.difficulty ? { difficulty: query.difficulty } : {}),
-        ...(query.type ? { type: query.type as any } : {}),
-      },
+  @ApiOperation({ summary: 'Lister les défis (filtres + pagination par curseur)' })
+  async list(@Query() query: ChallengeFilterDto & { cursor?: string; limit?: string }) {
+    const take = Math.min(Number(query.limit) || 20, 100);
+    const cursor = query.cursor ? JSON.parse(Buffer.from(query.cursor, 'base64').toString()) : null;
+
+    const where: any = {
+      ...(query.status ? { status: query.status as any } : { status: 'PUBLISHED' }),
+      ...(query.theme ? { theme: { slug: query.theme } } : {}),
+      ...(query.difficulty ? { difficulty: query.difficulty } : {}),
+      ...(query.type ? { type: query.type as any } : {}),
+      ...(cursor ? { id: { gt: cursor.id } } : {}),
+    };
+
+    const items = await this.prisma.challenge.findMany({
+      where,
       include: { theme: { select: { slug: true, name: true } } },
-      orderBy: [{ theme: { order: 'asc' } }, { order: 'asc' }],
+      orderBy: { id: 'asc' },
+      take: take + 1,
     });
+
+    const hasMore = items.length > take;
+    const data = hasMore ? items.slice(0, take) : items;
+    const nextCursor = hasMore
+      ? Buffer.from(JSON.stringify({ id: data[data.length - 1].id })).toString('base64')
+      : null;
+
+    return { data, nextCursor };
   }
 
   @Get(':slug')
