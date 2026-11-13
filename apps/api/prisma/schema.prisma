@@ -68,6 +68,9 @@ enum TransactionReason {
   SHOP_PURCHASE
   HINT_SPENT
   ADMIN_GRANT
+  SERIE_CONNEXIONS
+  BADGE_GRANT
+  COSMETIC_UNLOCK
 }
 
 // ─── Comptes et RBAC (§3, §4.1, §10) ─────────────────────────────────────────
@@ -85,6 +88,9 @@ model User {
   createdAt         DateTime   @default(now())
   updatedAt         DateTime   @updatedAt
   deletedAt         DateTime?
+
+  connectionStreak  Int        @default(0)
+  maxStreak         Int        @default(0)
 
   roles         UserRole[]
   sessions      Session[]
