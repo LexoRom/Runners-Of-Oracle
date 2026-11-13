@@ -360,6 +360,8 @@ model Event {
   endsAt      DateTime
   timezone    String      @default("Europe/Paris")
   maxAttempts Int         @default(1)
+  rewardBits  Int         @default(0)
+  rewardTitle String?
   createdAt   DateTime    @default(now())
 
   challenge    Challenge?         @relation(fields: [challengeId], references: [id])
