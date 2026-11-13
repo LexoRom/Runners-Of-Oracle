@@ -1,0 +1,480 @@
+// CodeQuest — schéma relationnel v1 (Must + Should)
+// Conforme au §6 de la spécification : FK partout, contraintes d'unicité,
+// index sur (challenge_id, score DESC), migrations versionnées et réversibles.
+// Les tables "Could" (boss, PV, battle royale, chat) sont hors périmètre.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum UserStatus {
+  LIMITED
+  ACTIVE
+  BANNED
+  PENDING_DELETION
+}
+
+enum ChallengeType {
+  SORT
+  DEBUG
+  DECRYPT
+  STEGANO
+  QR
+}
+
+enum ChallengeStatus {
+  DRAFT
+  REVIEW
+  PUBLISHED
+  ARCHIVED
+}
+
+enum EventType {
+  STANDARD
+  BATTLE_ROYALE
+}
+
+enum EventStatus {
+  DRAFT
+  SCHEDULED
+  OPEN
+  CLOSED
+  ARCHIVED
+}
+
+enum SubmissionStatus {
+  PENDING
+  RUNNING
+  DONE
+  FAILED
+}
+
+enum TeamRole {
+  CAPTAIN
+  MEMBER
+}
+
+enum TransactionReason {
+  CHALLENGE_SOLVED
+  RECORD_BONUS
+  EVENT_REWARD
+  SHOP_PURCHASE
+  HINT_SPENT
+  ADMIN_GRANT
+}
+
+// ─── Comptes et RBAC (§3, §4.1, §10) ─────────────────────────────────────────
+
+model User {
+  id                String     @id @default(uuid())
+  email             String     @unique
+  pseudo            String     @unique
+  passwordHash      String
+  emailVerifiedAt   DateTime?
+  status            UserStatus @default(LIMITED)
+  preferredLanguage String     @default("javascript")
+  theme             String     @default("dark")
+  soundEnabled      Boolean    @default(true)
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+  deletedAt         DateTime?
+
+  roles         UserRole[]
+  sessions      Session[]
+  resetTokens   PasswordResetToken[]
+  submissions   Submission[]
+  bestScores    BestScore[]
+  lessonProgress LessonProgress[]
+  loreProgress  LoreProgress[]
+  wallet        Wallet?
+  inventory     InventoryItem[]
+  teamMemberships TeamMember[]
+  captainedTeams  Team[]          @relation("TeamCaptain")
+  eventParticipations EventParticipant[]
+  auditLogs     AuditLog[]        @relation("AuditActor")
+
+  @@index([status])
+}
+
+model Role {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  label       String
+  createdAt   DateTime @default(now())
+
+  permissions RolePermission[]
+  users       UserRole[]
+}
+
+model Permission {
+  id     String @id @default(uuid())
+  name   String @unique
+  label  String
+
+  roles RolePermission[]
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+}
+
+model UserRole {
+  userId String
+  roleId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role   Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+}
+
+model Session {
+  id               String    @id @default(uuid())
+  userId           String
+  refreshTokenHash String    @unique
+  familyId         String
+  userAgent        String?
+  ip               String?
+  expiresAt        DateTime
+  revokedAt        DateTime?
+  createdAt        DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([familyId])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(uuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// ─── Contenu : thématiques, défis, leçons (§4.2, §4.7) ───────────────────────
+
+model Theme {
+  id             String   @id @default(uuid())
+  name           String
+  slug           String   @unique
+  description    String?
+  regionLoreId   String?
+  order          Int      @default(0)
+  createdAt      DateTime @default(now())
+
+  challenges Challenge[]
+  lessons    Lesson[]
+}
+
+model Challenge {
+  id          String          @id @default(uuid())
+  themeId     String
+  type        ChallengeType
+  difficulty  Int             @default(1)
+  title       String
+  slug        String          @unique
+  statement   String
+  basePoints  Int             @default(100)
+  perfMax     Int             @default(50)
+  tOpt        Float?
+  tMax        Float?
+  isEvent     Boolean         @default(false)
+  isBoss      Boolean         @default(false)
+  tags        String[]        @default([])
+  status      ChallengeStatus @default(DRAFT)
+  order       Int             @default(0)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  theme         Theme                  @relation(fields: [themeId], references: [id])
+  versions      ChallengeVersion[]
+  prerequisites ChallengePrerequisite[] @relation("ChallengeRequires")
+  requiredBy    ChallengePrerequisite[] @relation("ChallengeRequiredBy")
+  submissions   Submission[]
+  bestScores    BestScore[]
+  events        Event[]
+
+  @@index([themeId, difficulty])
+  @@index([status])
+}
+
+model ChallengeVersion {
+  id                       String   @id @default(uuid())
+  challengeId              String
+  version                  Int      @default(1)
+  statement                String?
+  starterCode              String?
+  testsEncrypted           String
+  referenceSolutionEncrypt String
+  createdAt                DateTime @default(now())
+
+  challenge Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+
+  @@unique([challengeId, version])
+}
+
+model ChallengePrerequisite {
+  id                 String  @id @default(uuid())
+  challengeId        String
+  requiredChallengeId String?
+  requiredLevel      Int?
+  requiredLessonId   String?
+
+  challenge         Challenge @relation("ChallengeRequires", fields: [challengeId], references: [id], onDelete: Cascade)
+  requiredChallenge Challenge? @relation("ChallengeRequiredBy", fields: [requiredChallengeId], references: [id])
+
+  @@unique([challengeId, requiredChallengeId])
+}
+
+model Lesson {
+  id        String   @id @default(uuid())
+  themeId   String
+  title     String
+  slug      String   @unique
+  content   String
+  quiz      Json?
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  theme    Theme            @relation(fields: [themeId], references: [id])
+  progress LessonProgress[]
+}
+
+model LessonProgress {
+  userId      String
+  lessonId    String
+  completedAt DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@id([userId, lessonId])
+}
+
+// ─── Évaluation (§4.3) ───────────────────────────────────────────────────────
+
+model Submission {
+  id          String           @id @default(uuid())
+  challengeId String
+  userId      String?
+  teamId      String?
+  language    String
+  code        String
+  status      SubmissionStatus @default(PENDING)
+  cpuTimeMs   Float?
+  testsPassed Int              @default(0)
+  testsTotal  Int              @default(0)
+  score       Int              @default(0)
+  isOfficial  Boolean          @default(false)
+  output      String?
+  createdAt   DateTime         @default(now())
+
+  challenge Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  user      User?     @relation(fields: [userId], references: [id])
+  team      Team?     @relation(fields: [teamId], references: [id])
+  bestScore BestScore?
+
+  @@index([challengeId, score(sort: Desc)])
+  @@index([userId])
+  @@index([teamId])
+}
+
+model BestScore {
+  id           String   @id @default(uuid())
+  challengeId  String
+  userId       String?
+  teamId       String?
+  score        Int
+  submissionId String   @unique
+  createdAt    DateTime @default(now())
+
+  challenge  Challenge  @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  user       User?      @relation(fields: [userId], references: [id])
+  team       Team?      @relation(fields: [teamId], references: [id])
+  submission Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@index([challengeId, score(sort: Desc)])
+  @@unique([challengeId, userId, teamId])
+}
+
+// ─── Équipes (§4.6) ──────────────────────────────────────────────────────────
+
+model Team {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  tag         String   @unique
+  description String?
+  logoUrl     String?
+  captainId   String
+  createdAt   DateTime @default(now())
+
+  captain     User            @relation("TeamCaptain", fields: [captainId], references: [id])
+  members     TeamMember[]
+  submissions Submission[]
+  bestScores  BestScore[]
+  eventParticipations EventParticipant[]
+}
+
+model TeamMember {
+  teamId   String
+  userId   String
+  role     TeamRole @default(MEMBER)
+  joinedAt DateTime @default(now())
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([teamId, userId])
+  @@index([userId])
+}
+
+// ─── Events (§4.4) ───────────────────────────────────────────────────────────
+
+model Event {
+  id          String      @id @default(uuid())
+  title       String
+  slug        String      @unique
+  description String?
+  type        EventType   @default(STANDARD)
+  status      EventStatus @default(DRAFT)
+  challengeId String?
+  startsAt    DateTime
+  endsAt      DateTime
+  timezone    String      @default("Europe/Paris")
+  maxAttempts Int         @default(1)
+  createdAt   DateTime    @default(now())
+
+  challenge    Challenge?         @relation(fields: [challengeId], references: [id])
+  participants EventParticipant[]
+
+  @@index([status, startsAt])
+}
+
+model EventParticipant {
+  id            String    @id @default(uuid())
+  eventId       String
+  userId        String?
+  teamId        String?
+  attemptUsedAt DateTime?
+  startedAt     DateTime?
+  joinedAt      DateTime  @default(now())
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User? @relation(fields: [userId], references: [id])
+  team  Team? @relation(fields: [teamId], references: [id])
+
+  @@unique([eventId, userId])
+  @@unique([eventId, teamId])
+}
+
+// ─── Économie (§4.10) : registre immuable, solde dérivé ──────────────────────
+
+model Wallet {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  balance   Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+}
+
+model Transaction {
+  id             String            @id @default(uuid())
+  walletId       String
+  amount         Int
+  reason         TransactionReason
+  idempotencyKey String            @unique
+  metadata       Json?
+  createdAt      DateTime          @default(now())
+
+  wallet Wallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  @@index([walletId, createdAt])
+}
+
+model ShopItem {
+  id          String   @id @default(uuid())
+  slug        String   @unique
+  name        String
+  description String?
+  price       Int
+  category    String
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  inventory InventoryItem[]
+}
+
+model InventoryItem {
+  userId     String
+  shopItemId String
+  quantity   Int      @default(1)
+  equipped   Boolean  @default(false)
+  acquiredAt DateTime @default(now())
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shopItem ShopItem @relation(fields: [shopItemId], references: [id], onDelete: Cascade)
+
+  @@id([userId, shopItemId])
+}
+
+// ─── Lore (§4.8) ─────────────────────────────────────────────────────────────
+
+model LoreChapter {
+  id            String   @id @default(uuid())
+  title         String
+  slug          String   @unique
+  region        String
+  content       String
+  requiredLevel Int      @default(1)
+  order         Int      @default(0)
+  createdAt     DateTime @default(now())
+
+  progress LoreProgress[]
+}
+
+model LoreProgress {
+  userId    String
+  chapterId String
+  readAt    DateTime @default(now())
+
+  user    User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chapter LoreChapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+
+  @@id([userId, chapterId])
+}
+
+// ─── Audit (§4.12, §9) ───────────────────────────────────────────────────────
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  actorId   String?
+  action    String
+  target    String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  actor User? @relation("AuditActor", fields: [actorId], references: [id])
+
+  @@index([createdAt])
+  @@index([actorId])
+}
