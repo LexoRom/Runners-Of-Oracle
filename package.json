@@ -1,12 +1,17 @@
 {
   "name": "runners-of-oracle",
   "version": "1.0.0",
-  "description": "Runners Of ORACLE est une plateforme d’apprentissage et de compétition où des développeurs, seuls ou en équipe, relèvent des défis informatiques. C'est un projet réalisé dans le cadre de notre 3e année de BUT informatique..",
+  "private": true,
+  "description": "Runners Of ORACLE est une plateforme d’apprentissage et de compétition où des développeurs, seuls ou en équipe, relèvent des défis informatiques. C'est un projet réalisé dans le cadre de notre 3e année de BUT informatique.",
   "main": "index.js",
-  "directories": {
-    "doc": "docs"
-  },
+  "workspaces": [
+    "apps/*",
+    "services/*"
+  ],
   "scripts": {
+    "prepare": "husky install",
+    "lint": "eslint \"**/*.{ts,tsx,js,jsx}\"",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,yaml}\"",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
