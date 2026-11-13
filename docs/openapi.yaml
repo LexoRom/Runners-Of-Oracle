@@ -192,7 +192,7 @@ components:
       properties:
         preferredLanguage:
           type: string
-          example: "javascript"
+          example: 'javascript'
         theme:
           type: string
           enum: [dark, light]
