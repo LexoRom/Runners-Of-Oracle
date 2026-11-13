@@ -1,0 +1,27 @@
+{
+  "name": "@codequest/runner",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "dockerode": "^4.0.4",
+    "express": "^4.21.2"
+  },
+  "devDependencies": {
+    "@types/dockerode": "^3.3.35",
+    "@types/express": "^5.0.1",
+    "@types/node": "^22.13.10",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.2"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true,
+    "protobufjs": true,
+    "ssh2": true,
+    "cpu-features": true
+  }
+}
