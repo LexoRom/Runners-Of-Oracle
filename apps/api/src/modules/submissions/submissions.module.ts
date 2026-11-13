@@ -91,8 +91,10 @@ export class ChallengeSubmissionsController {
 
     const allPassed = passed === tests.length && tests.length > 0;
     const basePoints = challenge.basePoints * challenge.difficulty;
+    // Le débogage est noté sur la correction (+ essais/temps côté front), pas sur la perf CPU.
+    const isDebug = challenge.type === 'DEBUG';
     let perfPoints = 0;
-    if (allPassed && challenge.tOpt != null && challenge.tMax != null && challenge.tMax > challenge.tOpt) {
+    if (!isDebug && allPassed && challenge.tOpt != null && challenge.tMax != null && challenge.tMax > challenge.tOpt) {
       const ratio = clamp(1 - (totalTimeMs - challenge.tOpt) / (challenge.tMax - challenge.tOpt), 0, 1);
       perfPoints = Math.round(challenge.perfMax * ratio);
     }
