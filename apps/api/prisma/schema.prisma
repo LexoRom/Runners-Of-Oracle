@@ -278,6 +278,7 @@ model Submission {
   teamId      String?
   language    String
   code        String
+  idempotencyKey String?      @unique
   status      SubmissionStatus @default(PENDING)
   cpuTimeMs   Float?
   testsPassed Int              @default(0)

@@ -5,6 +5,7 @@ import {
   Module,
   Param,
   Post,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
@@ -14,6 +15,7 @@ import { PrismaService } from '../../prisma/prisma.module';
 import { AuthUser, CurrentUser, JwtAuthGuard } from '../../common';
 import { randomUUID } from 'node:crypto';
 import * as vm from 'node:vm';
+import type { Request } from 'express';
 
 class CreateSubmissionDto {
   @IsString() language: string;
@@ -37,7 +39,14 @@ export class ChallengeSubmissionsController {
     @Param('challengeId') challengeId: string,
     @CurrentUser() user: AuthUser,
     @Body() dto: CreateSubmissionDto,
+    @Req() req: Request,
   ) {
+    const idempotencyKey = req.headers['idempotency-key'] as string | undefined;
+    if (idempotencyKey) {
+      const existing = await this.prisma.submission.findUnique({ where: { idempotencyKey } });
+      if (existing) return existing;
+    }
+
     const challenge = await this.prisma.challenge.findUnique({
       where: { id: challengeId },
       include: { versions: { orderBy: { version: 'desc' }, take: 1 } },
@@ -75,6 +84,7 @@ export class ChallengeSubmissionsController {
         status: 'RUNNING',
         testsTotal: tests.length,
         isOfficial,
+        idempotencyKey: idempotencyKey ?? null,
       },
     });
 
