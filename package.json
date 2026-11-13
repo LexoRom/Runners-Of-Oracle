@@ -1,0 +1,26 @@
+{
+  "name": "codequest",
+  "version": "0.1.0",
+  "private": true,
+  "description": "CodeQuest - plateforme de defis informatiques (monorepo)",
+  "scripts": {
+    "dev": "concurrently -n api,web -c cyan,magenta \"npm:dev:api\" \"npm:dev:web\"",
+    "dev:api": "npm run dev -w @codequest/api",
+    "dev:web": "npm run dev -w @codequest/web",
+    "dev:runner": "npm run dev -w @codequest/runner",
+    "build": "npm run build -w @codequest/api && npm run build -w @codequest/web",
+    "test": "npm run test -w @codequest/api",
+    "db:migrate": "npm run db:migrate -w @codequest/api",
+    "db:seed": "npm run db:seed -w @codequest/api",
+    "db:generate": "npm run db:generate -w @codequest/api",
+    "infra:up": "docker compose up -d",
+    "infra:down": "docker compose down",
+    "infra:ps": "docker compose ps"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
