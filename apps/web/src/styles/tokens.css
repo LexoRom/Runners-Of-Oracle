@@ -1,0 +1,50 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #0b1020;
+  --surface: #131a33;
+  --border: #1f2a4d;
+  --fg: #e6ecff;
+  --muted: #9aa7c7;
+  --accent-cyan: #22d3ee;
+  --accent-magenta: #e879f9;
+}
+
+[data-theme="light"] {
+  --bg: #f6f8ff;
+  --surface: #ffffff;
+  --border: #d7deee;
+  --fg: #1a2035;
+  --muted: #5a6480;
+  --accent-cyan: #0891b2;
+  --accent-magenta: #c026d3;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+}
+
+code, pre, textarea.code {
+  font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+a { color: var(--accent-cyan); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+input, textarea, select {
+  background: var(--surface);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font: inherit;
+}
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  border-color: var(--accent-cyan);
+}
