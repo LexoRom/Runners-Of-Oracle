@@ -13,9 +13,9 @@ async function main() {
       themeId: theme.id,
       type: 'SORT',
       difficulty: 2,
-      title: 'Tri à bulles',
+      title: 'Tri a bulles',
       slug: 'tri-a-bulles',
-      statement: 'Implémentez un tri à bulles qui renvoie la liste triée par ordre croissant.',
+      statement: 'Implementez un tri a bulles qui renvoie la liste triee par ordre croissant.',
       basePoints: 200,
       perfMax: 50,
       tOpt: 0.5,
@@ -41,8 +41,22 @@ async function main() {
     },
   });
 
-  // Prérequis : aucun (racine)
-  console.log('✔ Défi créé :', challenge.slug);
+  console.log('Defi cree :', challenge.slug);
+
+  // Didacticiel : cours + quiz
+  const lesson = await prisma.lesson.upsert({
+    where: { slug: 'le-tri-a-bulles' },
+    update: {},
+    create: {
+      themeId: theme.id,
+      title: 'Le tri a bulles',
+      slug: 'le-tri-a-bulles',
+      content: 'Le tri a bulles compare les elements adjacents et les echange si necessaire. Complexite O(n^2).',
+      quiz: [{ question: 'Complexite ?', options: ['O(n)', 'O(n log n)', 'O(n^2)'], answer: 2 }],
+      order: 1,
+    },
+  });
+  console.log('Cours cree :', lesson.slug);
 }
 
 main().finally(() => prisma.$disconnect());
