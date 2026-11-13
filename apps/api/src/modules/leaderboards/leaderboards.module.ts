@@ -4,11 +4,9 @@ import {
   Module,
   Param,
   Query,
-  UseGuards,
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { PrismaService } from '../../prisma/prisma.module';
-import { JwtAuthGuard } from '../../common';
 
 @ApiTags('Classements')
 @Controller('leaderboards')

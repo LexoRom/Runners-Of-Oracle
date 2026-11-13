@@ -21,7 +21,7 @@ import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import type { Request, Response } from 'express';
 import { PrismaService } from '../../prisma/prisma.module';
 import { ACCESS_COOKIE, REFRESH_COOKIE, sessionCookieOptions } from '../../common';
-import { ForgotPasswordDto, LoginDto, RegisterDto, ResetPasswordDto, UpdateProfileDto, VerifyEmailDto } from './auth.dto';
+import { ForgotPasswordDto, LoginDto, RegisterDto, ResetPasswordDto, VerifyEmailDto } from './auth.dto';
 
 const sha256 = (value: string) => createHash('sha256').update(value).digest('hex');
 const ACCESS_TTL_MS = 15 * 60 * 1000;
@@ -280,7 +280,7 @@ export class AuthController {
   async login(@Body() dto: LoginDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
     const result = await this.auth.login(dto, req.headers['user-agent'], req.ip);
     this.setCookies(res, result.accessToken, result.refreshToken);
-    const { accessToken, refreshToken, ...rest } = result;
+    const { accessToken: _accessToken, refreshToken: _refreshToken, ...rest } = result;
     return rest;
   }
 
@@ -290,7 +290,7 @@ export class AuthController {
   async refresh(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     const result = await this.auth.refresh(req.cookies?.[REFRESH_COOKIE], req.headers['user-agent'], req.ip);
     this.setCookies(res, result.accessToken, result.refreshToken);
-    const { accessToken, refreshToken, ...rest } = result;
+    const { accessToken: _accessToken, refreshToken: _refreshToken, ...rest } = result;
     return rest;
   }
 

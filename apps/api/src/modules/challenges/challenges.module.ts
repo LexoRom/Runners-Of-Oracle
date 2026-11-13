@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Module,
+  NotFoundException,
   Param,
   Post,
   Query,
@@ -12,7 +13,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { IsInt, IsOptional, IsString, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 import { PrismaService } from '../../prisma/prisma.module';
-import { AuthUser, CurrentUser, JwtAuthGuard, Roles, RolesGuard } from '../../common';
+import { JwtAuthGuard, Roles, RolesGuard } from '../../common';
 
 class ChallengeFilterDto {
   @IsOptional() @IsString() theme?: string;
@@ -21,13 +22,13 @@ class ChallengeFilterDto {
   @IsOptional() @IsString() type?: string;
 }
 
-@ApiTags('Défis')
+@ApiTags('DÃ©fis')
 @Controller('challenges')
 export class ChallengesController {
   constructor(private readonly prisma: PrismaService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Lister les défis (filtres : theme, difficulty, status, type)' })
+  @ApiOperation({ summary: 'Lister les dÃ©fis (filtres : theme, difficulty, status, type)' })
   list(@Query() query: ChallengeFilterDto) {
     return this.prisma.challenge.findMany({
       where: {
@@ -42,14 +43,14 @@ export class ChallengesController {
   }
 
   @Get(':slug')
-  @ApiOperation({ summary: 'Détail d’un défi (tests cachés jamais renvoyés)' })
+  @ApiOperation({ summary: 'DÃ©tail dâ€™un dÃ©fi (tests cachÃ©s jamais renvoyÃ©s)' })
   async detail(@Param('slug') slug: string) {
     const challenge = await this.prisma.challenge.findUnique({
       where: { slug },
       include: { theme: true, versions: { orderBy: { version: 'desc' }, take: 1 } },
     });
-    if (!challenge) throw new (require('@nestjs/common').NotFoundException)('Défi introuvable');
-    // On ne renvoie jamais les tests ni la solution de référence (§8, §9)
+    if (!challenge) throw new NotFoundException('DÃ©fi introuvable');
+    // On ne renvoie jamais les tests ni la solution de rÃ©fÃ©rence (Â§8, Â§9)
     const { testsEncrypted: _t, referenceSolutionEncrypt: _r, ...version } = challenge.versions[0] ?? ({} as any);
     return { ...challenge, version };
   }
@@ -57,7 +58,7 @@ export class ChallengesController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMINISTRATEUR')
   @Post()
-  @ApiOperation({ summary: 'Créer un défi (admin)' })
+  @ApiOperation({ summary: 'CrÃ©er un dÃ©fi (admin)' })
   create(@Body() body: any) {
     return this.prisma.challenge.create({ data: body });
   }

@@ -1,9 +1,12 @@
 import {
+  BadRequestException,
   Body,
+  ConflictException,
   Controller,
   Get,
   HttpCode,
   Module,
+  NotFoundException,
   Param,
   Post,
   UseGuards,
@@ -45,13 +48,13 @@ export class EventsController {
   @ApiOperation({ summary: 'Rejoindre un event (joueur ou équipe)' })
   async join(@CurrentUser() user: AuthUser, @Param('id') id: string, @Body() dto: JoinEventDto) {
     const event = await this.prisma.event.findUnique({ where: { id } });
-    if (!event) throw new (require('@nestjs/common').NotFoundException)('Event introuvable');
+    if (!event) throw new NotFoundException('Event introuvable');
     const now = new Date();
     if (now < event.startsAt || now > event.endsAt) {
-      throw new (require('@nestjs/common').BadRequestException)({ code: 'out_of_window', message: 'Event hors plage horaire' });
+      throw new BadRequestException({ code: 'out_of_window', message: 'Event hors plage horaire' });
     }
     if (event.status !== 'OPEN' && event.status !== 'SCHEDULED') {
-      throw new (require('@nestjs/common').BadRequestException)({ code: 'event_closed', message: 'Event fermé' });
+      throw new BadRequestException({ code: 'event_closed', message: 'Event fermé' });
     }
     const existing = await this.prisma.eventParticipant.findFirst({
       where: { eventId: id, ...(dto.teamId ? { teamId: dto.teamId } : { userId: user.sub }) },
@@ -70,9 +73,9 @@ export class EventsController {
     const participant = await this.prisma.eventParticipant.findFirst({
       where: { eventId: id, ...(dto.teamId ? { teamId: dto.teamId } : { userId: user.sub }) },
     });
-    if (!participant) throw new (require('@nestjs/common').BadRequestException)({ code: 'not_joined', message: 'Rejoignez l’event d’abord' });
+    if (!participant) throw new BadRequestException({ code: 'not_joined', message: 'Rejoignez l’event d’abord' });
     if (participant.attemptUsedAt) {
-      throw new (require('@nestjs/common').ConflictException)({ code: 'attempt_used', message: 'Essai déjà consommé' });
+      throw new ConflictException({ code: 'attempt_used', message: 'Essai déjà consommé' });
     }
     const updated = await this.prisma.eventParticipant.update({
       where: { id: participant.id },

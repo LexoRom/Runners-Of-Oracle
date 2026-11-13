@@ -1,8 +1,10 @@
 import {
   Body,
   Controller,
+  ForbiddenException,
   Get,
   Module,
+  NotFoundException,
   Param,
   Post,
   UseGuards,
@@ -12,7 +14,6 @@ import { IsInt, IsOptional, IsString, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 import { PrismaService } from '../../prisma/prisma.module';
 import { AuthUser, CurrentUser, JwtAuthGuard } from '../../common';
-import { randomUUID } from 'node:crypto';
 import * as vm from 'node:vm';
 
 class CreateSubmissionDto {
@@ -42,11 +43,11 @@ export class ChallengeSubmissionsController {
       where: { id: challengeId },
       include: { versions: { orderBy: { version: 'desc' }, take: 1 } },
     });
-    if (!challenge) throw new (require('@nestjs/common').NotFoundException)('Défi introuvable');
-    if (challenge.status !== 'PUBLISHED') throw new (require('@nestjs/common').ForbiddenException)('Défi non publié');
+    if (!challenge) throw new NotFoundException('Défi introuvable');
+    if (challenge.status !== 'PUBLISHED') throw new ForbiddenException('Défi non publié');
 
     const version = challenge.versions[0];
-    if (!version) throw new (require('@nestjs/common').NotFoundException)('Aucune version de défi');
+    if (!version) throw new NotFoundException('Aucune version de défi');
 
     // Tests stockés chiffrés en production (AES-256-GCM, §9) ; en dev ils sont en clair.
     let tests: { input: any; expected: any }[] = [];

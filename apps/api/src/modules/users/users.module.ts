@@ -5,6 +5,7 @@ import {
   Get,
   HttpCode,
   Module,
+  NotFoundException,
   Param,
   Patch,
   UseGuards,
@@ -25,7 +26,7 @@ export class UsersController {
   @ApiOperation({ summary: 'Profil de l’utilisateur connecté' })
   async me(@CurrentUser() user: AuthUser) {
     const u = await this.prisma.user.findUnique({ where: { id: user.sub } });
-    if (!u) throw new (require('@nestjs/common').NotFoundException)();
+    if (!u) throw new NotFoundException();
     return {
       id: u.id,
       email: u.email,

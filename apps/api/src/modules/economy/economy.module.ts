@@ -1,8 +1,10 @@
 import {
+  BadRequestException,
   Controller,
   Get,
   HttpCode,
   Module,
+  NotFoundException,
   Param,
   Post,
   Req,
@@ -26,7 +28,7 @@ export class EconomyController {
       where: { userId: user.sub },
       include: { transactions: { orderBy: { createdAt: 'desc' }, take: 50 } },
     });
-    if (!w) throw new (require('@nestjs/common').NotFoundException)();
+    if (!w) throw new NotFoundException();
     return { balance: w.balance, transactions: w.transactions };
   }
 
@@ -46,12 +48,12 @@ export class EconomyController {
     if (existing) return { status: 'already_processed', idempotencyKey: key };
 
     const item = await this.prisma.shopItem.findUnique({ where: { id: itemId } });
-    if (!item) throw new (require('@nestjs/common').NotFoundException)('Objet introuvable');
+    if (!item) throw new NotFoundException('Objet introuvable');
 
     const wallet = await this.prisma.wallet.findUnique({ where: { userId: user.sub } });
-    if (!wallet) throw new (require('@nestjs/common').NotFoundException)();
+    if (!wallet) throw new NotFoundException();
     if (wallet.balance < item.price) {
-      throw new (require('@nestjs/common').BadRequestException)({ code: 'insufficient_funds', message: 'Solde insuffisant' });
+      throw new BadRequestException({ code: 'insufficient_funds', message: 'Solde insuffisant' });
     }
 
     await this.prisma.$transaction([

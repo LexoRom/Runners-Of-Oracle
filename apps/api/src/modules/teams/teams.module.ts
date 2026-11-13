@@ -1,10 +1,13 @@
 import {
   Body,
+  ConflictException,
   Controller,
   Delete,
+  ForbiddenException,
   Get,
   HttpCode,
   Module,
+  NotFoundException,
   Param,
   Post,
   UseGuards,
@@ -55,11 +58,11 @@ export class TeamsController {
   @ApiOperation({ summary: 'Inviter un joueur par pseudo' })
   async invite(@CurrentUser() user: AuthUser, @Param('id') id: string, @Body() dto: InviteDto) {
     const team = await this.prisma.team.findUnique({ where: { id } });
-    if (!team || team.captainId !== user.sub) throw new (require('@nestjs/common').ForbiddenException)('Réservé au capitaine');
+    if (!team || team.captainId !== user.sub) throw new ForbiddenException('Réservé au capitaine');
     const invitee = await this.prisma.user.findUnique({ where: { pseudo: dto.pseudo } });
-    if (!invitee) throw new (require('@nestjs/common').NotFoundException)('Utilisateur introuvable');
+    if (!invitee) throw new NotFoundException('Utilisateur introuvable');
     const existing = await this.prisma.teamMember.findUnique({ where: { teamId_userId: { teamId: id, userId: invitee.id } } });
-    if (existing) throw new (require('@nestjs/common').ConflictException)('Déjà membre');
+    if (existing) throw new ConflictException('Déjà membre');
     return this.prisma.teamMember.create({ data: { teamId: id, userId: invitee.id, role: 'MEMBER' } });
   }
 
@@ -69,9 +72,9 @@ export class TeamsController {
   @ApiOperation({ summary: 'Exclure un membre (capitaine) ou quitter (soi-même)' })
   async remove(@CurrentUser() user: AuthUser, @Param('id') id: string, @Param('userId') userId: string) {
     const team = await this.prisma.team.findUnique({ where: { id } });
-    if (!team) throw new (require('@nestjs/common').NotFoundException)();
+    if (!team) throw new NotFoundException();
     if (user.sub !== team.captainId && user.sub !== userId) {
-      throw new (require('@nestjs/common').ForbiddenException)('Droits insuffisants');
+      throw new ForbiddenException('Droits insuffisants');
     }
     await this.prisma.teamMember.delete({ where: { teamId_userId: { teamId: id, userId } } });
   }

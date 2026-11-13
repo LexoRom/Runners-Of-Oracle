@@ -53,6 +53,31 @@ npm run test -w @codequest/api
 ## Conteneurisation
 
 ```bash
-docker compose build
+# Stack de base (postgres, redis, api, web, runner)
 docker compose up -d
+
+# Stack complète (+ MinIO, MailHog) — nécessite un accès réseau pour le premier pull
+docker compose --profile full up -d
 ```
+
+### Services optionnels (profil `full`)
+
+- **MinIO** (`minio/minio`) : stockage objet pour les avatars et logos d'équipe.
+- **MailHog** (`mailhog/mailhog`) : capture des e-mails de test (confirmation, reset).
+- **LiveKit** (chat vocal) : hors périmètre v1 (Could), non inclus.
+
+### Variables d'environnement par environnement
+
+Des exemples sont fournis dans `infra/env/` (`.env.development.example`, `.env.production.example`).
+La protection de la branche `main` (relecture obligatoire, CI verte) se configure dans
+GitHub → Settings → Branches.
+
+### Images multi-architecture
+
+Les images sont construites pour `linux/amd64` et `linux/arm64` via `docker buildx`
+dans le workflow CD (`.github/workflows/cd.yml`).
+
+### Publication et déploiement
+
+Le workflow CD (déclenché sur `main` et les tags `v*`) construit et publie les images
+sur GHCR, puis déclenche le déploiement (à compléter selon l'hébergeur cible).

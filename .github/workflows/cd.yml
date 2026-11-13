@@ -1,0 +1,54 @@
+name: CD
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [api, web, runner]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up QEMU (multi-arch)
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image (multi-arch)
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.service == 'runner' && './services/runner' || format('./apps/{0}', matrix.service) }}
+          file: ${{ matrix.service == 'runner' && './services/runner/Dockerfile' || format('./apps/{0}/Dockerfile', matrix.service) }}
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}-${{ matrix.service }}:${{ github.sha }}
+            ghcr.io/${{ github.repository }}-${{ matrix.service }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # Déploiement staging puis production manuelle — à compléter selon l'hébergeur cible
+  # (voir section 11.1 et 17 de la spécification).
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - run: echo "Déploiement à implémenter (Docker Compose sur serveur unique, puis K8s si charge)."
