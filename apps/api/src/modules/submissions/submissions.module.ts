@@ -78,13 +78,39 @@ export class ChallengeSubmissionsController {
       },
     });
 
-    // Python : runner isolé prévu à la vague 2 (§8) — renvoyer une erreur claire plutôt qu'un faux résultat.
+    // Python : délégation au service runner (§8). JS reste exécuté en local (node:vm).
     if (dto.language === 'python') {
-      await this.prisma.submission.update({
-        where: { id: submission.id },
-        data: { status: 'FAILED', output: 'Python runner en cours d’implémentation (vague 2). Utilisez JavaScript.' },
-      });
-      return this.prisma.submission.findUnique({ where: { id: submission.id } });
+      try {
+        const r = await fetch((process.env.RUNNER_URL ?? 'http://localhost:4000') + '/run', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ language: 'python', code: dto.code, tests }),
+        });
+        const result: any = await r.json();
+        const allPassed = result.passed === result.total && result.total > 0;
+        const basePoints = challenge.basePoints * challenge.difficulty;
+        let perfPoints = 0;
+        if (allPassed && challenge.tOpt != null && challenge.tMax != null && challenge.tMax > challenge.tOpt) {
+          const ratio = clamp(1 - (result.cpuTimeMs - challenge.tOpt) / (challenge.tMax - challenge.tOpt), 0, 1);
+          perfPoints = Math.round(challenge.perfMax * ratio);
+        }
+        const score = allPassed ? basePoints + perfPoints : 0;
+        const updated = await this.prisma.submission.update({
+          where: { id: submission.id },
+          data: { status: 'DONE', cpuTimeMs: result.cpuTimeMs, testsPassed: result.passed, testsTotal: result.total, score, output: result.output },
+        });
+        if (score > 0) {
+          const existingBest = await this.prisma.bestScore.findFirst({ where: { challengeId, userId: user.sub } });
+          if (!existingBest || score > existingBest.score) {
+            if (existingBest) await this.prisma.bestScore.update({ where: { id: existingBest.id }, data: { score, submissionId: submission.id } });
+            else await this.prisma.bestScore.create({ data: { challengeId, userId: user.sub, score, submissionId: submission.id } });
+          }
+        }
+        return updated;
+      } catch (e: any) {
+        await this.prisma.submission.update({ where: { id: submission.id }, data: { status: 'FAILED', output: 'Runner Python indisponible : ' + (e?.message ?? e) } });
+        return this.prisma.submission.findUnique({ where: { id: submission.id } });
+      }
     }
 
     const { passed, totalTimeMs, output } = this.runJs(dto.code, tests);
