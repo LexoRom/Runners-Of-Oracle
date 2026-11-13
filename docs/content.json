@@ -1,0 +1,54 @@
+{
+  "_comment": "Contenu rédigé par le dev B — injecté dans le seed Prisma à la vague 3. Toutes les chaînes sont en français.",
+  "challenges": [
+    {
+      "title": "Tri à bulles",
+      "slug": "tri-a-bulles",
+      "theme": "tris",
+      "type": "SORT",
+      "difficulty": 1,
+      "statement": "Implémentez un tri à bulles qui renvoie la liste triée par ordre croissant.",
+      "starterCode": "function solve(input) {\n  const arr = [...input];\n  // votre code\n  return arr;\n}",
+      "tests": [
+        { "input": [3, 1, 2], "expected": [1, 2, 3] },
+        { "input": [], "expected": [] },
+        { "input": [5, 4, 3, 2, 1], "expected": [1, 2, 3, 4, 5] },
+        { "input": [1, 2, 3], "expected": [1, 2, 3] }
+      ],
+      "basePoints": 100,
+      "perfMax": 50,
+      "tOpt": 0.5,
+      "tMax": 5.0
+    }
+  ],
+  "lessons": [
+    {
+      "title": "Le tri à bulles",
+      "slug": "le-tri-a-bulles",
+      "theme": "tris",
+      "content": "Le tri à bulles compare les éléments adjacents et les échange si nécessaire. Complexité O(n²).",
+      "quiz": [
+        { "question": "Complexité du tri à bulles ?", "options": ["O(n)", "O(n log n)", "O(n²)"], "answer": 2 }
+      ]
+    }
+  ],
+  "lore": [
+    {
+      "title": "ORACLE corrompue",
+      "slug": "oracle-corrompue",
+      "region": "dedale-des-tris",
+      "content": "Dans un futur proche, ORACLE, l’IA qui gère le Réseau mondial, a été corrompue..."
+    }
+  ],
+  "events": [
+    {
+      "title": "Sprint du Dédale",
+      "slug": "sprint-dedale",
+      "description": "Un défi de tri, un seul essai, 15 minutes.",
+      "type": "STANDARD",
+      "startsAt": "2026-11-20T10:00:00+01:00",
+      "endsAt": "2026-11-20T10:15:00+01:00",
+      "challengeSlug": "tri-a-bulles"
+    }
+  ]
+}
