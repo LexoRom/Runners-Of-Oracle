@@ -13,6 +13,7 @@ import { Type } from 'class-transformer';
 import { PrismaService } from '../../prisma/prisma.module';
 import { AuthUser, CurrentUser, JwtAuthGuard } from '../../common';
 import { randomUUID } from 'node:crypto';
+import { computeScore } from '../../lib/scoring';
 import * as vm from 'node:vm';
 
 class CreateSubmissionDto {
@@ -90,13 +91,15 @@ export class ChallengeSubmissionsController {
     const { passed, totalTimeMs, output } = this.runJs(dto.code, tests);
 
     const allPassed = passed === tests.length && tests.length > 0;
-    const basePoints = challenge.basePoints * challenge.difficulty;
-    let perfPoints = 0;
-    if (allPassed && challenge.tOpt != null && challenge.tMax != null && challenge.tMax > challenge.tOpt) {
-      const ratio = clamp(1 - (totalTimeMs - challenge.tOpt) / (challenge.tMax - challenge.tOpt), 0, 1);
-      perfPoints = Math.round(challenge.perfMax * ratio);
-    }
-    const score = allPassed ? basePoints + perfPoints : 0;
+    const { total: score } = computeScore({
+      basePoints: challenge.basePoints,
+      difficulty: challenge.difficulty,
+      perfMax: challenge.perfMax,
+      tOpt: challenge.tOpt,
+      tMax: challenge.tMax,
+      cpuTimeMs: totalTimeMs,
+      allTestsPassed: allPassed,
+    });
 
     const updated = await this.prisma.submission.update({
       where: { id: submission.id },
