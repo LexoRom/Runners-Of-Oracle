@@ -15,6 +15,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtModule, JwtService } from '@nestjs/jwt';
+import { Throttle } from '@nestjs/throttler';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { hash, verify } from '@node-rs/argon2';
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
@@ -269,6 +270,7 @@ export class AuthController {
   }
 
   @Post('register')
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @ApiOperation({ summary: 'Créer un compte (e-mail, pseudo, mot de passe ≥ 12 caractères)' })
   register(@Body() dto: RegisterDto) {
     return this.auth.register(dto);
@@ -276,6 +278,7 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(200)
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @ApiOperation({ summary: 'Connexion par e-mail ou pseudo — pose les cookies de session' })
   async login(@Body() dto: LoginDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
     const result = await this.auth.login(dto, req.headers['user-agent'], req.ip);
